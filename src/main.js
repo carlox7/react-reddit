@@ -5,17 +5,66 @@ import superagent from 'superagent';
 
 const API_URL = 'http://www.reddit.com/r';
 
+//App manage application state
+//SearchForm collect user input and call a handleSearch function
+
+let renderIf = (test, component) => test ? component : undefined;
+
 class SearchForm extends React.Component {
+  constructor(props){
+    super(props);
+    this.state = {
+      searchText: '',
+    };
+    this.handleChange = this.handleChange.bind(this);
+    this.handleSubmit = this.handleSubmit.bind(this);
+  }
+
+  handleChange(e){
+    this.setState({
+      searchText: e.target.value,
+    });
+  }
+
+  handleSubmit(e){
+    e.preventDefault();
+    this.props.handleSearch(this.state.searchText);
+  }
+
   render(){
-    return <p>cool</p>;
+    return (
+      <form onSubmit={this.handleSubmit}>
+        <label> {this.props.title} </label>
+        <input
+          type='text'
+          onChange={this.handleChange}
+          value={this.state.searchText}
+        />
+        <button type='submit'> search </button>
+      </form>
+    );
   }
 }
 
+//should recieve an array of reddit articles through props
 class SearchResultsList extends React.Component {
+  constructor(props){
+    super(props);
+  }
   render(){
-    return <p> blister in the sun </p>;
+    let articles = this.props.articles || [];
+    console.log('articles', articles);
+    return (
+      <ul> {articles.map((item, i) =>
+        <li key={i}>
+          <a href={item.data.url} target="_blank">{item.data.title}</a>
+        </li>
+      )}
+      </ul>
+    );
   }
 }
+
 
 class App extends React.Component {
   constructor(props){
@@ -37,7 +86,7 @@ class App extends React.Component {
       .then(res => {
         console.log('request success', res);
         this.setState({
-          results: res.body,
+          results: res.body.data.children,
           searchErrorMessage: null,
         });
       })
@@ -45,16 +94,23 @@ class App extends React.Component {
         this.setState({
           results: null,
           searchErrorMessage: `unable to find the reddit board ${board}`,
-        })
-      })
+        });
+      });
   }
 
   render(){
     return (
       <main>
-      <h1> cool beans </h1>
-      <SearchForm />
-      <SearchResultsList />
+        <h1> cool beans </h1>
+        <SearchForm
+          title='Reddit board'
+          handleSearch={this.redditBoardFetch}
+        />
+        {renderIf(this.state.results,
+          <SearchResultsList articles={this.state.results}/>
+        )}
+        {renderIf(this.state.searchErrorMessage,
+          <p> {this.state.searchErrorMessage} </p>)}
       </main>
     );
   }
